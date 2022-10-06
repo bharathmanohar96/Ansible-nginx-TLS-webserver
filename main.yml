@@ -1,0 +1,53 @@
+---
+- hosts: nginx
+  become: true
+  vars:
+    key_file: /etc/nginx/ssl/nginx.key
+    cert_file: /etc/nginx/ssl/nginx.crt
+  tasks:
+    - name: Install the nginx rpm from a remote repo
+      yum:
+        name: http://nginx.org/packages/mainline/centos/7/x86_64/RPMS/nginx-1.11.0-1.el7.ngx.x86_64.rpm
+    - name: create ssl directory
+      file:
+        path: /etc/nginx/ssl
+        state: directory
+    - name: copy TLS key
+      copy:
+        src: files/nginx.key
+        dest: "{{ key_file }}"
+        owner: root
+        mode: 0600
+    - name: copy TLS certificate
+      copy:
+        src: files/nginx.crt
+        dest: "{{ cert_file }}"
+    - name: Install nginx
+      yum:
+        name: nginx
+        state: latest
+        update_cache: yes
+    - name: start the nginx server
+      service:
+        name: nginx
+        state: started
+        enabled: true
+      ignore_errors: true
+    - name: copy the conf files
+      copy:
+        src: nginx.conf
+        dest: /etc/nginx/nginx.conf
+        #- name: enable configuration
+      #file:
+        #dest: /etc/nginx/sites-enabled/default
+        #src: /etc/nginx/sites-avaiable/default
+        #state: link
+        #force: yes
+    - name: copy index.html
+      template:
+        src: index.html.j2
+        dest: /usr/share/nginx/html/index.html
+     - name: restart the server
+      service:
+        name: nginx
+        state: restarted
